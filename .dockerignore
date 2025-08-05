@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+LICENSE
+*.md
+example-use.png
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Go files (for bridge)
+whatsapp-bridge/whatsapp-bridge
+whatsapp-bridge/*.db
+whatsapp-bridge/*.log
+
+# Python files (for MCP server)
+whatsapp-mcp-server/__pycache__
+whatsapp-mcp-server/*.pyc
+whatsapp-mcp-server/*.pyo
+whatsapp-mcp-server/*.pyd
+whatsapp-mcp-server/.Python
+whatsapp-mcp-server/.uv
+whatsapp-mcp-server/.venv
+whatsapp-mcp-server/venv
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
