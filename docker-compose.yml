@@ -1,0 +1,18 @@
+services:
+  whatsapp-bridge:
+    build:
+      context: ./whatsapp-bridge
+      dockerfile: Dockerfile
+    container_name: whatsapp-bridge
+    ports:
+      - "8080:8080"
+    volumes:
+      - whatsapp-data:/app/data
+      - ./whatsapp-bridge/messages.db:/app/messages.db
+    environment:
+      - DB_PATH=/app/data/whatsmeow.db
+      - MESSAGES_DB_PATH=/app/messages.db
+    restart: unless-stopped
+
+volumes:
+  whatsapp-data:
