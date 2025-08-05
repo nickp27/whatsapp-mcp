@@ -58,7 +58,11 @@ For manual setup:
 2. **Build the Docker images**
 
    ```bash
+   # Build the WhatsApp bridge
    docker-compose build
+   
+   # Build the MCP server
+   docker build -t whatsapp-mcp ./whatsapp-mcp-server
    ```
 
 3. **Start the WhatsApp bridge**
@@ -145,7 +149,7 @@ Copy this configuration and save it:
         "-i",
         "-v",
         "{{PATH_TO_PROJECT}}/whatsapp-bridge/messages.db:/app/messages.db:ro",
-        "walla-walla-mcp-server"
+        "whatsapp-mcp"
       ]
     }
   }
@@ -224,7 +228,7 @@ To backup your data:
 cp whatsapp-bridge/messages.db messages-backup.db
 
 # Backup WhatsApp session
-docker run --rm -v walla-walla_whatsapp-data:/data -v $(pwd):/backup alpine tar czf /backup/whatsapp-backup.tar.gz -C /data .
+docker run --rm -v whatsapp-mcp_whatsapp-data:/data -v $(pwd):/backup alpine tar czf /backup/whatsapp-backup.tar.gz -C /data .
 ```
 
 ## Verifying Your Setup
