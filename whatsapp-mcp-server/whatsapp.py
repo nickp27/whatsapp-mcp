@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
-from dataclasses import dataclass
-from typing import Optional, List, Tuple
+from dataclasses import dataclass, asdict
+from typing import Optional, List, Tuple, Dict, Any
 import os.path
 import os
 import requests
@@ -47,6 +47,24 @@ class MessageContext:
     message: Message
     before: List[Message]
     after: List[Message]
+
+def dataclass_to_dict(obj):
+    """Convert dataclass instances to dictionaries, handling datetime serialization."""
+    if obj is None:
+        return None
+    elif hasattr(obj, '__dataclass_fields__'):  # dataclass
+        result = asdict(obj)
+        # Convert datetime objects to ISO format strings
+        for key, value in result.items():
+            if isinstance(value, datetime):
+                result[key] = value.isoformat() if value else None
+            elif isinstance(value, list):
+                result[key] = [dataclass_to_dict(item) for item in value]
+        return result
+    elif isinstance(obj, list):
+        return [dataclass_to_dict(item) for item in obj]
+    else:
+        return obj
 
 def get_sender_name(sender_jid: str) -> str:
     try:
@@ -133,7 +151,7 @@ def list_messages(
     include_context: bool = True,
     context_before: int = 1,
     context_after: int = 1
-) -> List[Message]:
+) -> List[Dict[str, Any]]:
     """Get messages matching the specified criteria with optional context."""
     try:
         conn = sqlite3.connect(MESSAGES_DB_PATH)
@@ -207,14 +225,15 @@ def list_messages(
             messages_with_context = []
             for msg in result:
                 context = get_message_context(msg.id, context_before, context_after)
-                messages_with_context.extend(context.before)
-                messages_with_context.append(context.message)
-                messages_with_context.extend(context.after)
+                # Extract the actual message objects from the context
+                messages_with_context.extend(context['before'])
+                messages_with_context.append(context['message'])
+                messages_with_context.extend(context['after'])
             
-            return format_messages_list(messages_with_context, show_chat_info=True)
+            return dataclass_to_dict(messages_with_context)
             
-        # Format and display messages without context
-        return format_messages_list(result, show_chat_info=True)    
+        # Return structured data instead of formatted string
+        return dataclass_to_dict(result)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -228,7 +247,7 @@ def get_message_context(
     message_id: str,
     before: int = 5,
     after: int = 5
-) -> MessageContext:
+) -> Dict[str, Any]:
     """Get context around a specific message."""
     try:
         conn = sqlite3.connect(MESSAGES_DB_PATH)
@@ -303,11 +322,13 @@ def get_message_context(
                 media_type=msg[7]
             ))
         
-        return MessageContext(
+        context = MessageContext(
             message=target_message,
             before=before_messages,
             after=after_messages
         )
+        
+        return dataclass_to_dict(context)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -323,7 +344,7 @@ def list_chats(
     page: int = 0,
     include_last_message: bool = True,
     sort_by: str = "last_active"
-) -> List[Chat]:
+) -> List[Dict[str, Any]]:
     """Get chats matching the specified criteria."""
     try:
         conn = sqlite3.connect(MESSAGES_DB_PATH)
@@ -381,7 +402,7 @@ def list_chats(
             )
             result.append(chat)
             
-        return result
+        return dataclass_to_dict(result)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -391,7 +412,7 @@ def list_chats(
             conn.close()
 
 
-def search_contacts(query: str) -> List[Contact]:
+def search_contacts(query: str) -> List[Dict[str, Any]]:
     """Search contacts by name or phone number."""
     try:
         conn = sqlite3.connect(MESSAGES_DB_PATH)
@@ -423,7 +444,7 @@ def search_contacts(query: str) -> List[Contact]:
             )
             result.append(contact)
             
-        return result
+        return dataclass_to_dict(result)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -433,7 +454,7 @@ def search_contacts(query: str) -> List[Contact]:
             conn.close()
 
 
-def get_contact_chats(jid: str, limit: int = 20, page: int = 0) -> List[Chat]:
+def get_contact_chats(jid: str, limit: int = 20, page: int = 0) -> List[Dict[str, Any]]:
     """Get all chats involving the contact.
     
     Args:
@@ -474,7 +495,7 @@ def get_contact_chats(jid: str, limit: int = 20, page: int = 0) -> List[Chat]:
             )
             result.append(chat)
             
-        return result
+        return dataclass_to_dict(result)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -533,7 +554,7 @@ def get_last_interaction(jid: str) -> str:
             conn.close()
 
 
-def get_chat(chat_jid: str, include_last_message: bool = True) -> Optional[Chat]:
+def get_chat(chat_jid: str, include_last_message: bool = True) -> Optional[Dict[str, Any]]:
     """Get chat metadata by JID."""
     try:
         conn = sqlite3.connect(MESSAGES_DB_PATH)
@@ -564,7 +585,7 @@ def get_chat(chat_jid: str, include_last_message: bool = True) -> Optional[Chat]
         if not chat_data:
             return None
             
-        return Chat(
+        chat = Chat(
             jid=chat_data[0],
             name=chat_data[1],
             last_message_time=datetime.fromisoformat(chat_data[2]) if chat_data[2] else None,
@@ -572,6 +593,8 @@ def get_chat(chat_jid: str, include_last_message: bool = True) -> Optional[Chat]
             last_sender=chat_data[4],
             last_is_from_me=chat_data[5]
         )
+        
+        return dataclass_to_dict(chat)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
@@ -581,7 +604,7 @@ def get_chat(chat_jid: str, include_last_message: bool = True) -> Optional[Chat]
             conn.close()
 
 
-def get_direct_chat_by_contact(sender_phone_number: str) -> Optional[Chat]:
+def get_direct_chat_by_contact(sender_phone_number: str) -> Optional[Dict[str, Any]]:
     """Get chat metadata by sender phone number."""
     try:
         conn = sqlite3.connect(MESSAGES_DB_PATH)
@@ -607,7 +630,7 @@ def get_direct_chat_by_contact(sender_phone_number: str) -> Optional[Chat]:
         if not chat_data:
             return None
             
-        return Chat(
+        chat = Chat(
             jid=chat_data[0],
             name=chat_data[1],
             last_message_time=datetime.fromisoformat(chat_data[2]) if chat_data[2] else None,
@@ -615,6 +638,8 @@ def get_direct_chat_by_contact(sender_phone_number: str) -> Optional[Chat]:
             last_sender=chat_data[4],
             last_is_from_me=chat_data[5]
         )
+        
+        return dataclass_to_dict(chat)
         
     except sqlite3.Error as e:
         print(f"Database error: {e}")
