@@ -16,7 +16,7 @@ from whatsapp import (
 )
 
 # Initialize FastMCP server
-mcp = FastMCP("whatsapp")
+mcp = FastMCP(name="whatsapp", stateless_http=True, host='0.0.0.0')
 
 @mcp.tool()
 def search_contacts(query: str) -> List[Dict[str, Any]]:
@@ -248,4 +248,4 @@ def download_media(message_id: str, chat_jid: str) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # Initialize and run the server
-    mcp.run(transport='stdio')
+    mcp.run(transport="streamable-http")

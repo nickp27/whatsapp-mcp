@@ -5,14 +5,27 @@ services:
       dockerfile: Dockerfile
     container_name: whatsapp-bridge
     ports:
-      - "8080:8080"
+      - "38080:8080"
     volumes:
-      - whatsapp-data:/app/data
-      - ./whatsapp-bridge/messages.db:/app/messages.db
+      - ./whatsapp-data:/app/data
+      - ./whatsapp-store:/app/store
     environment:
       - DB_PATH=/app/data/whatsmeow.db
-      - MESSAGES_DB_PATH=/app/messages.db
+      - UID=1001
+      - GID=1001
     restart: unless-stopped
 
-volumes:
-  whatsapp-data:
+  whatsapp-mcp-server:
+    build:
+      context: ./whatsapp-mcp-server
+      dockerfile: Dockerfile
+    container_name: whatsapp-mcp-server
+    ports:
+      - "9876:8000"
+    volumes:
+      - ./whatsapp-store:/app/store:ro
+    environment:
+      - MESSAGES_DB_PATH=/app/store/messages.db
+      - UID=1001
+      - GID=1001
+    restart: unless-stopped
